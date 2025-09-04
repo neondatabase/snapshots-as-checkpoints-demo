@@ -40,13 +40,16 @@ export function UpdatedCheckpointsTimeline({
   };
 
   return (
-    <nav
-      className={cn(
-        "flex flex-wrap items-center gap-2 rounded-lg border border-[#E4E5E7] p-2 dark:border-[#303236]",
-        className,
-      )}
-    >
-      {items.map((i, idx) => (
+    <div className={className}>
+      <div className="text-xs text-[#61646B] dark:text-[#94979E] mb-1 text-center font-medium">
+        Version History
+      </div>
+      <nav
+        className={cn(
+          "flex flex-wrap items-center gap-2 rounded-lg border border-[#E4E5E7] p-2 dark:border-[#303236]",
+        )}
+      >
+        {items.map((i, idx) => (
         <React.Fragment key={i.id}>
           <CheckpointButton
             pending={pendingItemId === i.id}
@@ -76,6 +79,7 @@ export function UpdatedCheckpointsTimeline({
           {idx < items.length - 1 && <span className="opacity-30">→</span>}
         </React.Fragment>
       ))}
-    </nav>
+      </nav>
+    </div>
   );
 }

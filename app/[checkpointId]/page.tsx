@@ -121,6 +121,12 @@ export default async function CheckpointPage({
               </TabsList>
 
               <TabsContent value="app">
+                <div className="mb-2 text-sm font-medium text-[#61646B] dark:text-[#94979E]">
+                  Code-Generated App
+                </div>
+                <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
+                  The codegen agent iterates on this app based on user prompts. The app connects to the application database for data persistence.
+                </div>
                 {demoStep.version === "v0" && (
                   <div className="rounded-lg border border-[#E4E5E7] p-4 text-sm dark:border-[#303236]">
                     Empty app
@@ -148,7 +154,10 @@ export default async function CheckpointPage({
 
               <TabsContent value="meta">
                 <div className="mb-2 text-sm font-medium text-[#61646B] dark:text-[#94979E]">
-                  project checkpoints
+                  App Versions (Checkpoints) Table
+                </div>
+                <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
+                  The Codegen platform meta database tracks users, projects, and project versions (checkpoints). Each checkpoint maps to an app version including a Neon database snapshot.
                 </div>
                 <div className="rounded-lg border border-[#E4E5E7] shadow-sm dark:border-[#303236]">
                   <Table>
@@ -183,6 +192,12 @@ export default async function CheckpointPage({
               </TabsContent>
 
               <TabsContent value="schema">
+                <div className="mb-2 text-sm font-medium text-[#61646B] dark:text-[#94979E]">
+                  Application Database
+                </div>
+                <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
+                  The database and contacts table are managed by the codegen agent. The agent makes schema changes based on user prompts and runs database migrations accordingly.
+                </div>
                 <div className="mb-2 text-sm font-medium text-[#61646B] dark:text-[#94979E]">
                   {demoStep.version === "v0" ||
                   (contactsSchema as ContactsTableColumn[]).length === 0
