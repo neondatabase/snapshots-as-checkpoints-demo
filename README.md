@@ -81,6 +81,8 @@ Notes:
 
 ## Run locally
 
+Node.js 20.9 or newer is required (Next.js 16).
+
 ```bash
 npm install
 npm run dev

@@ -2,10 +2,13 @@
   "name": "snapshots-as-checkpoints-demo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "fmt": "prettier --write .",
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "eslint . && next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
