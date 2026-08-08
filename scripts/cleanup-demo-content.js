@@ -18,9 +18,8 @@
 
 // Load environment variables if a .env file is present
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require("dotenv").config();
-} catch (_) {
+} catch {
   // optional
 }
 
@@ -102,7 +101,6 @@ try {
     );
     cpFailed.forEach((r, idx) => {
       const proj = projects[idx];
-      // eslint-disable-next-line no-console
       console.warn(`  - ${proj?.id}: ${r.reason?.message || r.reason}`);
     });
   }
@@ -116,7 +114,6 @@ try {
     console.warn(`Failed to delete ${neonFailed.length} Neon project(s):`);
     neonFailed.forEach((r, idx) => {
       const proj = projects[idx];
-      // eslint-disable-next-line no-console
       console.warn(
         `  - ${proj?.neon_project_id}: ${r.reason?.message || r.reason}`,
       );
