@@ -13,9 +13,8 @@
 
 // Load environment variables if a .env file is present
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require("dotenv").config();
-} catch (_) {
+} catch {
   // dotenv is optional; ignore if not installed
 }
 
