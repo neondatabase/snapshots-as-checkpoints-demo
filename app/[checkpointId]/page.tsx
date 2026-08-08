@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { listCheckpoints, getLatestProjectForUser } from "@/lib/checkpoints";
 import {
   fetchContactsByVersion,
@@ -32,12 +32,20 @@ import { UpdatedCheckpointsTimeline } from "./updated-checkpoints-timeline";
 
 export const dynamic = "force-dynamic";
 
+// Checkpoint ids are uuids, and this is the only route at the root of the path
+// space, so it otherwise answers for every single-segment URL. Rejecting the rest
+// here keeps them away from the session read, which proxy.ts only covers for
+// uuid-shaped paths.
+const CHECKPOINT_ID =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 export default async function CheckpointPage({
   params,
 }: {
   params: Promise<{ checkpointId: string }>;
 }) {
   const { checkpointId } = await params;
+  if (!CHECKPOINT_ID.test(checkpointId)) notFound();
   const user = await getSessionUser();
   if (!user) redirect("/auth/sign-in");
   const project = await getLatestProjectForUser(user.id);
