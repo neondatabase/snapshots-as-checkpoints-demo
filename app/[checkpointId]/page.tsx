@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { listCheckpoints, getLatestProjectForUser } from "@/lib/checkpoints";
 import {
   fetchContactsByVersion,
@@ -26,8 +26,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listCheckpoints as listMetaCheckpoints } from "@/lib/checkpoints";
-import { stackServerApp } from "@/lib/stack";
+import { getSessionUser } from "@/lib/auth/server";
+import { signInUrl } from "@/lib/auth/sign-in-url";
+import { UserMenu } from "@/components/user-menu";
 import { UpdatedCheckpointsTimeline } from "./updated-checkpoints-timeline";
+
+export const dynamic = "force-dynamic";
+
+// Checkpoint ids are uuids, and this is the only route at the root of the path
+// space, so it otherwise answers for every single-segment URL. Rejecting the rest
+// here keeps them away from the session read, which proxy.ts only covers for
+// uuid-shaped paths.
+const CHECKPOINT_ID =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export default async function CheckpointPage({
   params,
@@ -35,7 +46,9 @@ export default async function CheckpointPage({
   params: Promise<{ checkpointId: string }>;
 }) {
   const { checkpointId } = await params;
-  const user = await stackServerApp.getUser({ or: "redirect" });
+  if (!CHECKPOINT_ID.test(checkpointId)) notFound();
+  const user = await getSessionUser();
+  if (!user) redirect(signInUrl(`/${checkpointId}`));
   const project = await getLatestProjectForUser(user.id);
   if (!project) redirect("/");
   const checkpoints = await listCheckpoints(project.id);
@@ -101,8 +114,9 @@ export default async function CheckpointPage({
               isCurrent: c.id === checkpoint.id,
             }))}
           />
-          <div className="flex w-24 justify-end">
+          <div className="flex w-24 items-center justify-end gap-3">
             <ModeToggle />
+            <UserMenu />
           </div>
         </div>
       </header>
@@ -125,7 +139,9 @@ export default async function CheckpointPage({
                   Code-Generated App
                 </div>
                 <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
-                  The codegen agent iterates on this app based on user prompts. The app connects to the application database for data persistence.
+                  The codegen agent iterates on this app based on user prompts.
+                  The app connects to the application database for data
+                  persistence.
                 </div>
                 {demoStep.version === "v0" && (
                   <div className="rounded-lg border border-[#E4E5E7] p-4 text-sm dark:border-[#303236]">
@@ -157,7 +173,9 @@ export default async function CheckpointPage({
                   App Versions (Checkpoints) Table
                 </div>
                 <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
-                  The Codegen platform meta database tracks users, projects, and project versions (checkpoints). Each checkpoint maps to an app version including a Neon database snapshot.
+                  The Codegen platform meta database tracks users, projects, and
+                  project versions (checkpoints). Each checkpoint maps to an app
+                  version including a Neon database snapshot.
                 </div>
                 <div className="rounded-lg border border-[#E4E5E7] shadow-sm dark:border-[#303236]">
                   <Table>
@@ -196,7 +214,9 @@ export default async function CheckpointPage({
                   Application Database
                 </div>
                 <div className="mb-4 text-xs italic text-[#61646B] dark:text-[#94979E]">
-                  The database and contacts table are managed by the codegen agent. The agent makes schema changes based on user prompts and runs database migrations accordingly.
+                  The database and contacts table are managed by the codegen
+                  agent. The agent makes schema changes based on user prompts
+                  and runs database migrations accordingly.
                 </div>
                 <div className="mb-2 text-sm font-medium text-[#61646B] dark:text-[#94979E]">
                   {demoStep.version === "v0" ||

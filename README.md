@@ -10,7 +10,7 @@ Snapshots as Checkpoints is a demo that showcases how to build a “checkpoint�
 
 This demo uses one persistent meta Postgres database and a dynamic app database per user session:
 
-- meta database: stores auth user references (via Neon Auth), `projects`, and `checkpoints` (managed by Drizzle)
+- meta database: runs Neon Auth (Managed Better Auth), which owns the `neon_auth` schema, and stores `projects` and `checkpoints` (managed by Drizzle)
 - app database: created per user as a Neon project at demo start; its URL is saved in the `projects` table and used for all contacts reads/writes
 
 Key docs in this repo:
@@ -63,32 +63,87 @@ See [OPERATIONS_DOCS.md](OPERATIONS_DOCS.md) for operation semantics, and [SNAPS
 
 ## Environment variables
 
-Create a `.env` file in the project root with these variables:
+Create a `.env` file in the project root. See [.env.example](.env.example).
 
 ```env
-# Meta database (Drizzle-managed: users, projects, checkpoints)
+# Meta database (Drizzle-managed: projects, checkpoints)
 DATABASE_URL=postgres://user:pass@host/meta_db
 
-# Neon API access for creating/deleting projects, snapshots, restores
-# This should be an org-wide API key with permissions for your Neon org
+# Neon Auth (Managed Better Auth) on the meta database's branch
+NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.us-east-2.aws.neon.tech/neondb/auth
+NEON_AUTH_COOKIE_SECRET=at-least-32-characters
+
+# Neon API access for creating/deleting projects, snapshots, restores.
+# The key must be scoped to NEON_ORG_ID.
 NEON_API_KEY=your_org_api_key
+NEON_ORG_ID=org-...
 ```
 
 Notes:
 
 - `DATABASE_URL` points to the meta database only. The app database URL is created dynamically per user and stored in the `projects` table.
+- Every demo user gets their own Neon project in `NEON_ORG_ID`. The app rejects a project that comes back in any other org, so a key scoped elsewhere fails loudly instead of filling the wrong org.
 - The app uses the `production` branch of each user's Neon project as the root branch for snapshots/restores.
 
 ## Run locally
 
-Node.js 20.9 or newer is required (Next.js 16).
+Node.js 20.9 or newer is required (Next.js 16). You need the [Neon CLI](https://neon.com/docs/reference/neon-cli) and a Neon account.
+
+**1. Install and sign in.**
 
 ```bash
 npm install
+npm i -g neon
+neon auth
+```
+
+**2. Pick the org that will hold the per-user demo projects, and create a key scoped to it.**
+
+Give the demo its own org. It creates one Neon project per user who starts the demo, and an org of its own keeps that out of anything you care about.
+
+```bash
+neon orgs list                                        # NEON_ORG_ID
+neon api-keys create --name snapshots-demo --org-id <org-id>
+```
+
+The key is shown once. It must belong to the same org as `NEON_ORG_ID`: the app checks the org of every project it creates and refuses one that lands anywhere else.
+
+**3. Create the meta database and turn on Neon Auth.**
+
+The meta project holds users, projects and checkpoints. It can live in any org — it does not have to be the one above.
+
+```bash
+neon projects create --name snapshots-demo-meta --org-id <org-id>
+neon connection-string --project-id <meta-project-id>   # DATABASE_URL
+
+neon neon-auth enable --project-id <meta-project-id>
+```
+
+`enable` prints the base URL, and `neon neon-auth status --project-id <meta-project-id>` prints it again later:
+
+```
+Neon Auth status
+  Auth Provider:  better_auth
+  Branch ID:      br-...
+  Database:       neondb
+  Base URL:       https://ep-....neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth
+```
+
+Copy `Base URL` verbatim into `NEON_AUTH_BASE_URL` — the database name is part of the path, so it is not always `neondb`.
+
+**4. Fill in `.env` and start.**
+
+```bash
+cp .env.example .env
+openssl rand -base64 32   # NEON_AUTH_COOKIE_SECRET
+```
+
+```bash
+npm run db:migrate
 npm run dev
 ```
 
-Open http://localhost:3000 and click “Start demo”. The app will:
+Open http://localhost:3000, sign up, and click “Create app”. The app will:
 
 - create (or recreate) a Neon project for the signed-in user and store it in the meta DB
 - run the v1 mutation against that app DB and create the initial snapshot

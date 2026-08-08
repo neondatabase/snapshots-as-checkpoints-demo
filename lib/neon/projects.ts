@@ -4,7 +4,7 @@ import invariant from "tiny-invariant";
 import { waitForOperationsToSettle } from "./operations";
 
 type CreateProjectResponse = {
-  project?: { id?: string; name?: string };
+  project?: { id?: string; name?: string; org_id?: string };
   id?: string;
   connection_uris?: Array<{
     connection_uri?: string;
@@ -17,6 +17,8 @@ export async function createNeonProject(
 ): Promise<{ neonProjectId: string; databaseUrl: string }> {
   const apiKey = process.env.NEON_API_KEY;
   invariant(apiKey, "NEON_API_KEY is required");
+  const orgId = process.env.NEON_ORG_ID;
+  invariant(orgId, "NEON_ORG_ID is required");
   const res = await fetch("https://console.neon.tech/api/v2/projects", {
     method: "POST",
     headers: {
@@ -24,7 +26,7 @@ export async function createNeonProject(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ project: { name } }),
+    body: JSON.stringify({ project: { name, org_id: orgId } }),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -34,6 +36,24 @@ export async function createNeonProject(
   const json = (await res.json()) as CreateProjectResponse;
   const neonProjectId = json.project?.id ?? json.id;
   invariant(neonProjectId, "Neon project id missing in create response");
+  // An org-scoped key creates in its own org regardless of the org_id sent, so a
+  // key pointing somewhere else fills that org instead of this one, silently. The
+  // project exists by the time we can tell, so it has to be cleaned up before
+  // throwing or every retry leaves another one behind.
+  const createdOrgId = json.project?.org_id;
+  if (createdOrgId !== orgId) {
+    // Cleaning up must not replace the diagnosis: a failing delete would otherwise
+    // throw over the message that says why the project should not exist.
+    let cleanup = "It has been deleted.";
+    try {
+      await deleteNeonProject(neonProjectId);
+    } catch (error) {
+      cleanup = `It could not be deleted and is still there: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    throw new Error(
+      `Neon project was created in org ${createdOrgId} instead of NEON_ORG_ID (${orgId}). ${cleanup} Check that NEON_API_KEY is scoped to NEON_ORG_ID.`,
+    );
+  }
   const databaseUrl = json.connection_uris?.[0]?.connection_uri;
   invariant(databaseUrl, "Database URL missing in create response");
 

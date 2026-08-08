@@ -3,10 +3,13 @@ import logo from "@/assets/logo.svg";
 import logoDark from "@/assets/logo-dark.svg";
 import Link from "next/link";
 import docs from "@/assets/docs.svg";
-import { stackServerApp } from "@/lib/stack";
+import { getSessionUser } from "@/lib/auth/server";
 import { ModeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import { HomeCreateButton } from "./home-create-button";
+
+export const dynamic = "force-dynamic";
 
 const DATA = {
   title: "Neon is Postgres for AI",
@@ -27,12 +30,13 @@ const DATA = {
 };
 
 export default async function Home() {
-  const user = await stackServerApp.getUser();
+  const user = await getSessionUser();
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 w-full bg-white/80 py-3 backdrop-blur-md dark:bg-black/50">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-end px-5 md:px-8 lg:px-0">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-end gap-3 px-5 md:px-8 lg:px-0">
           <ModeToggle />
+          {user && <UserMenu />}
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 md:px-8 lg:px-0">
@@ -71,7 +75,7 @@ export default async function Home() {
                 asChild
                 className="rounded-full bg-[#00E599] px-5 py-2.5 font-semibold tracking-tight text-[#0C0D0D] transition-colors duration-200 hover:bg-[#00E5BF] lg:px-7 lg:py-3"
               >
-                <Link href="/handler/sign-in">Sign in to start demo</Link>
+                <Link href="/auth/sign-in">Sign in to start demo</Link>
               </Button>
             )}
           </div>
