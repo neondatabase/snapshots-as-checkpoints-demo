@@ -87,27 +87,63 @@ Notes:
 
 ## Run locally
 
-Node.js 20.9 or newer is required (Next.js 16).
+Node.js 20.9 or newer is required (Next.js 16). You need the [Neon CLI](https://neon.com/docs/reference/neon-cli) and a Neon account.
+
+**1. Install and sign in.**
 
 ```bash
 npm install
+npm i -g neon
+neon auth
 ```
 
-Neon Auth has to be running on the meta database's branch before the app can sign anyone in:
+**2. Pick the org that will hold the per-user demo projects, and create a key scoped to it.**
+
+Give the demo its own org. It creates one Neon project per user who starts the demo, and an org of its own keeps that out of anything you care about.
 
 ```bash
-neon neon-auth enable --project-id <meta-project-id>
-neon neon-auth status --project-id <meta-project-id>   # prints NEON_AUTH_BASE_URL
+neon orgs list                                        # NEON_ORG_ID
+neon api-keys create --name snapshots-demo --org-id <org-id>
 ```
 
-`openssl rand -base64 32` generates `NEON_AUTH_COOKIE_SECRET`. Then apply the schema and start the app:
+The key is shown once. It must belong to the same org as `NEON_ORG_ID`: the app checks the org of every project it creates and refuses one that lands anywhere else.
+
+**3. Create the meta database and turn on Neon Auth.**
+
+The meta project holds users, projects and checkpoints. It can live in any org — it does not have to be the one above.
+
+```bash
+neon projects create --name snapshots-demo-meta --org-id <org-id>
+neon connection-string --project-id <meta-project-id>   # DATABASE_URL
+
+neon neon-auth enable --project-id <meta-project-id>
+```
+
+`enable` prints the base URL, and `neon neon-auth status --project-id <meta-project-id>` prints it again later:
+
+```
+Neon Auth status
+  Auth Provider:  better_auth
+  Branch ID:      br-...
+  Database:       neondb
+  Base URL:       https://ep-....neonauth.c-5.us-east-2.aws.neon.tech/neondb/auth
+```
+
+Copy `Base URL` verbatim into `NEON_AUTH_BASE_URL` — the database name is part of the path, so it is not always `neondb`.
+
+**4. Fill in `.env` and start.**
+
+```bash
+cp .env.example .env
+openssl rand -base64 32   # NEON_AUTH_COOKIE_SECRET
+```
 
 ```bash
 npm run db:migrate
 npm run dev
 ```
 
-Open http://localhost:3000 and click “Start demo”. The app will:
+Open http://localhost:3000, sign up, and click “Create app”. The app will:
 
 - create (or recreate) a Neon project for the signed-in user and store it in the meta DB
 - run the v1 mutation against that app DB and create the initial snapshot

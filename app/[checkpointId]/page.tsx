@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { listCheckpoints as listMetaCheckpoints } from "@/lib/checkpoints";
 import { getSessionUser } from "@/lib/auth/server";
+import { signInUrl } from "@/lib/auth/sign-in-url";
 import { UserMenu } from "@/components/user-menu";
 import { UpdatedCheckpointsTimeline } from "./updated-checkpoints-timeline";
 
@@ -47,7 +48,7 @@ export default async function CheckpointPage({
   const { checkpointId } = await params;
   if (!CHECKPOINT_ID.test(checkpointId)) notFound();
   const user = await getSessionUser();
-  if (!user) redirect("/auth/sign-in");
+  if (!user) redirect(signInUrl(`/${checkpointId}`));
   const project = await getLatestProjectForUser(user.id);
   if (!project) redirect("/");
   const checkpoints = await listCheckpoints(project.id);

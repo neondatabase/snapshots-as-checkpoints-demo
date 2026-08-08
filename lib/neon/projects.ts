@@ -42,9 +42,16 @@ export async function createNeonProject(
   // throwing or every retry leaves another one behind.
   const createdOrgId = json.project?.org_id;
   if (createdOrgId !== orgId) {
-    await deleteNeonProject(neonProjectId);
+    // Cleaning up must not replace the diagnosis: a failing delete would otherwise
+    // throw over the message that says why the project should not exist.
+    let cleanup = "It has been deleted.";
+    try {
+      await deleteNeonProject(neonProjectId);
+    } catch (error) {
+      cleanup = `It could not be deleted and is still there: ${error instanceof Error ? error.message : String(error)}`;
+    }
     throw new Error(
-      `Neon project was created in org ${createdOrgId} instead of NEON_ORG_ID (${orgId}) and has been deleted. Check that NEON_API_KEY is scoped to NEON_ORG_ID.`,
+      `Neon project was created in org ${createdOrgId} instead of NEON_ORG_ID (${orgId}). ${cleanup} Check that NEON_API_KEY is scoped to NEON_ORG_ID.`,
     );
   }
   const databaseUrl = json.connection_uris?.[0]?.connection_uri;

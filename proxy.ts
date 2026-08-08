@@ -1,11 +1,15 @@
 import type { NextRequest } from "next/server";
 import { getAuth } from "@/lib/auth/server";
+import { signInUrl } from "@/lib/auth/sign-in-url";
 
 // The auth server rotates the session cookie periodically and the SDK writes the new
 // value through next/headers. Next forbids that during a Server Component render, so
 // the rotation has to be consumed here, before the page renders.
 export default async function proxy(request: NextRequest) {
-  return getAuth().middleware({ loginUrl: "/auth/sign-in" })(request);
+  // Every checkpoint is its own URL, so a shared or bookmarked link has to survive
+  // the sign-in round trip.
+  const loginUrl = signInUrl(request.nextUrl.pathname);
+  return getAuth().middleware({ loginUrl })(request);
 }
 
 // The middleware redirects any matched path that it does not already skip, so the

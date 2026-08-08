@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signInUrl } from "@/lib/auth/sign-in-url";
 
 type PendingState =
   | "idle"
@@ -23,6 +24,16 @@ interface UseCheckpointActionsReturn {
 export function useCheckpointActions(): UseCheckpointActionsReturn {
   const [pending, setPending] = useState<PendingState>("idle");
   const router = useRouter();
+  const pathname = usePathname();
+
+  // The session can end while a tab is open — signing out elsewhere, or an expiry.
+  // The action routes answer 401 for that, and a button that quietly does nothing is
+  // worse than the redirect it replaced.
+  const handleSignedOut = (response: Response) => {
+    if (response.status !== 401) return false;
+    router.push(signInUrl(pathname));
+    return true;
+  };
 
   const createNewProject = async () => {
     if (pending !== "idle") return;
@@ -35,6 +46,8 @@ export function useCheckpointActions(): UseCheckpointActionsReturn {
           "Content-Type": "application/json",
         },
       });
+
+      if (handleSignedOut(response)) return;
 
       const result = await response.json();
 
@@ -63,6 +76,8 @@ export function useCheckpointActions(): UseCheckpointActionsReturn {
         },
         body: JSON.stringify({ targetId }),
       });
+
+      if (handleSignedOut(response)) return;
 
       const result = await response.json();
 
@@ -95,6 +110,8 @@ export function useCheckpointActions(): UseCheckpointActionsReturn {
         },
         body: JSON.stringify(params),
       });
+
+      if (handleSignedOut(response)) return;
 
       const result = await response.json();
 
