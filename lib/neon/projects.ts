@@ -36,13 +36,17 @@ export async function createNeonProject(
   const json = (await res.json()) as CreateProjectResponse;
   const neonProjectId = json.project?.id ?? json.id;
   invariant(neonProjectId, "Neon project id missing in create response");
-  // An org-scoped key silently creates in its own org and ignores a mismatched
-  // org_id. Without this check the demo can quietly fill someone else's org, which
-  // is how 45 stray projects accumulated before the org was made explicit.
-  invariant(
-    json.project?.org_id === orgId,
-    `Neon project ${neonProjectId} was created in org ${json.project?.org_id} instead of NEON_ORG_ID (${orgId}). Check that NEON_API_KEY is scoped to that org.`,
-  );
+  // An org-scoped key creates in its own org regardless of the org_id sent, so a
+  // key pointing somewhere else fills that org instead of this one, silently. The
+  // project exists by the time we can tell, so it has to be cleaned up before
+  // throwing or every retry leaves another one behind.
+  const createdOrgId = json.project?.org_id;
+  if (createdOrgId !== orgId) {
+    await deleteNeonProject(neonProjectId);
+    throw new Error(
+      `Neon project was created in org ${createdOrgId} instead of NEON_ORG_ID (${orgId}) and has been deleted. Check that NEON_API_KEY is scoped to NEON_ORG_ID.`,
+    );
+  }
   const databaseUrl = json.connection_uris?.[0]?.connection_uri;
   invariant(databaseUrl, "Database URL missing in create response");
 
