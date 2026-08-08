@@ -4,7 +4,7 @@ import invariant from "tiny-invariant";
 import { waitForOperationsToSettle } from "./operations";
 
 type CreateProjectResponse = {
-  project?: { id?: string; name?: string };
+  project?: { id?: string; name?: string; org_id?: string };
   id?: string;
   connection_uris?: Array<{
     connection_uri?: string;
@@ -17,6 +17,8 @@ export async function createNeonProject(
 ): Promise<{ neonProjectId: string; databaseUrl: string }> {
   const apiKey = process.env.NEON_API_KEY;
   invariant(apiKey, "NEON_API_KEY is required");
+  const orgId = process.env.NEON_ORG_ID;
+  invariant(orgId, "NEON_ORG_ID is required");
   const res = await fetch("https://console.neon.tech/api/v2/projects", {
     method: "POST",
     headers: {
@@ -24,7 +26,7 @@ export async function createNeonProject(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ project: { name } }),
+    body: JSON.stringify({ project: { name, org_id: orgId } }),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -34,6 +36,13 @@ export async function createNeonProject(
   const json = (await res.json()) as CreateProjectResponse;
   const neonProjectId = json.project?.id ?? json.id;
   invariant(neonProjectId, "Neon project id missing in create response");
+  // An org-scoped key silently creates in its own org and ignores a mismatched
+  // org_id. Without this check the demo can quietly fill someone else's org, which
+  // is how 45 stray projects accumulated before the org was made explicit.
+  invariant(
+    json.project?.org_id === orgId,
+    `Neon project ${neonProjectId} was created in org ${json.project?.org_id} instead of NEON_ORG_ID (${orgId}). Check that NEON_API_KEY is scoped to that org.`,
+  );
   const databaseUrl = json.connection_uris?.[0]?.connection_uri;
   invariant(databaseUrl, "Database URL missing in create response");
 

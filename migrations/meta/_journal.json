@@ -15,6 +15,13 @@
       "when": 1755564331083,
       "tag": "0001_hesitant_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786204545295,
+      "tag": "0002_neon_auth_v2_user_ids",
+      "breakpoints": true
     }
   ]
 }

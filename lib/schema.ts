@@ -1,17 +1,13 @@
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { usersSync as userSyncTable } from "drizzle-orm/neon";
-
-export { userSyncTable };
 
 export const projectsTable = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   neonProjectId: text("neon_project_id").notNull().unique(),
   databaseUrl: text("database_url").notNull(),
-  ownerUserId: text("owner_user_id")
-    .notNull()
-    .references(() => userSyncTable.id, {
-      onDelete: "cascade",
-    }),
+  // Managed Better Auth owns neon_auth.user, so this deliberately carries no
+  // foreign key: drizzle-kit must not generate DDL against a schema the auth
+  // provider creates, drops, and migrates on its own.
+  ownerUserId: uuid("owner_user_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

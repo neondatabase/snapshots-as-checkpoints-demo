@@ -10,7 +10,7 @@ Snapshots as Checkpoints is a demo that showcases how to build a â€œcheckpointâ€
 
 This demo uses one persistent meta Postgres database and a dynamic app database per user session:
 
-- meta database: stores auth user references (via Neon Auth), `projects`, and `checkpoints` (managed by Drizzle)
+- meta database: runs Neon Auth (Managed Better Auth), which owns the `neon_auth` schema, and stores `projects` and `checkpoints` (managed by Drizzle)
 - app database: created per user as a Neon project at demo start; its URL is saved in the `projects` table and used for all contacts reads/writes
 
 Key docs in this repo:
@@ -63,20 +63,26 @@ See [OPERATIONS_DOCS.md](OPERATIONS_DOCS.md) for operation semantics, and [SNAPS
 
 ## Environment variables
 
-Create a `.env` file in the project root with these variables:
+Create a `.env` file in the project root. See [.env.example](.env.example).
 
 ```env
-# Meta database (Drizzle-managed: users, projects, checkpoints)
+# Meta database (Drizzle-managed: projects, checkpoints)
 DATABASE_URL=postgres://user:pass@host/meta_db
 
-# Neon API access for creating/deleting projects, snapshots, restores
-# This should be an org-wide API key with permissions for your Neon org
+# Neon Auth (Managed Better Auth) on the meta database's branch
+NEON_AUTH_BASE_URL=https://ep-xxx.neonauth.us-east-2.aws.neon.tech/neondb/auth
+NEON_AUTH_COOKIE_SECRET=at-least-32-characters
+
+# Neon API access for creating/deleting projects, snapshots, restores.
+# The key must be scoped to NEON_ORG_ID.
 NEON_API_KEY=your_org_api_key
+NEON_ORG_ID=org-...
 ```
 
 Notes:
 
 - `DATABASE_URL` points to the meta database only. The app database URL is created dynamically per user and stored in the `projects` table.
+- Every demo user gets their own Neon project in `NEON_ORG_ID`. The app rejects a project that comes back in any other org, so a key scoped elsewhere fails loudly instead of filling the wrong org.
 - The app uses the `production` branch of each user's Neon project as the root branch for snapshots/restores.
 
 ## Run locally
@@ -85,6 +91,19 @@ Node.js 20.9 or newer is required (Next.js 16).
 
 ```bash
 npm install
+```
+
+Neon Auth has to be running on the meta database's branch before the app can sign anyone in:
+
+```bash
+neon neon-auth enable --project-id <meta-project-id>
+neon neon-auth status --project-id <meta-project-id>   # prints NEON_AUTH_BASE_URL
+```
+
+`openssl rand -base64 32` generates `NEON_AUTH_COOKIE_SECRET`. Then apply the schema and start the app:
+
+```bash
+npm run db:migrate
 npm run dev
 ```
 

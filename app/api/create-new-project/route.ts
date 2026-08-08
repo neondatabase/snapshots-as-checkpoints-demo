@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { stackServerApp } from "@/lib/stack";
+import { getSessionUser } from "@/lib/auth/server";
 import { resetProject, createInitialCheckpoint } from "@/lib/checkpoints";
 
 export async function POST() {
-  const user = await stackServerApp.getUser({ or: "redirect" });
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: "Not signed in" },
+      { status: 401 },
+    );
+  }
 
   try {
     const project = await resetProject(

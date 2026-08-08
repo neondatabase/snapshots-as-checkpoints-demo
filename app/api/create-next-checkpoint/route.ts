@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stackServerApp } from "@/lib/stack";
+import { getSessionUser } from "@/lib/auth/server";
 import {
   createNextCheckpoint,
   getLatestProjectForUser,
@@ -9,10 +9,17 @@ import getProductionBranch from "@/lib/neon/branches";
 import { applySnapshot } from "@/lib/neon/apply-snapshot";
 
 export async function POST(request: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: "Not signed in" },
+      { status: 401 },
+    );
+  }
+
   const body = await request.json();
   const { nextStepId, targetId, checkpointId } = body;
 
-  const user = await stackServerApp.getUser({ or: "redirect" });
   const project = await getLatestProjectForUser(user.id);
 
   if (!project) {

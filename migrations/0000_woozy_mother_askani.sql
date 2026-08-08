@@ -26,5 +26,8 @@ CREATE TABLE "projects" (
 -- 	"updated_at" timestamp with time zone
 -- );
 --> statement-breakpoint
-ALTER TABLE "checkpoints" ADD CONSTRAINT "checkpoints_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "projects" ADD CONSTRAINT "projects_owner_user_id_users_sync_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "neon_auth"."users_sync"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "checkpoints" ADD CONSTRAINT "checkpoints_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;
+-- Retired with legacy Stack Auth. neon_auth.users_sync does not exist on a Managed
+-- Better Auth database, so this constraint made a fresh `db:migrate` fail here. 0002
+-- drops it on the one database that already had it.
+-- ALTER TABLE "projects" ADD CONSTRAINT "projects_owner_user_id_users_sync_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "neon_auth"."users_sync"("id") ON DELETE cascade ON UPDATE no action;
